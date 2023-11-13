@@ -29,7 +29,8 @@
  * Requires the SoftI2CMaster library
  * https://github.com/felias-fogg/SoftI2CMaster (or install through Library Manager)
  * 
- * Untested for now!
+ * Tested on:
+ * Barco ADVM14 (branded BarcoNet)
  *
  * Expect your monitor to catch fire!
  */
@@ -170,7 +171,7 @@ void readRequest8540() {
 void setup() {
   bool iicinit = i2c_init();
   pinMode(GPIO_BLANKING,OUTPUT);
-  digitalWrite(GPIO_BLANKING,HIGH);
+  digitalWrite(GPIO_BLANKING,LOW);
 
   Wire.begin(TDA9321H_ADDR);
   Wire.onReceive(writeRequest9321);
