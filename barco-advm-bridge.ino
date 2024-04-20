@@ -30,12 +30,14 @@
  * https://github.com/felias-fogg/SoftI2CMaster (or install through Library Manager)
  * 
  * Tested on:
- * Barco ADVM14 (branded BarcoNet)
+ * Barco ADVM14 (branded BarcoNet) (v1.0)
+ * Barco ADVM20 (branded Barco) (v1.0)
+ * Barco ADVM20 (branded Scientific Atlanta) (v1.1)
  *
  * Expect your monitor to catch fire!
  */
 
-// Version 1.0
+// Version 1.1
 
 #define I2C_TIMEOUT 500
 #define I2C_PULLUP 0
@@ -46,6 +48,9 @@
 // Only have one active of these, depending on what you want.
 #define RGB_SWITCH_REG_VAL (0x3) /* IE1 and IE2 enabled */
 //#define RGB_SWITCH_REG_VAL (0xB) /* IE1, IE2 and YUV mode for RGB1 enabled, untested... */
+
+// Uncomment this line if you have the late model Scientific Atlanta version without a TDA8540
+//#define SCIENTIFIC_ATLANTA (1)
 
 // These work for Nano 3.0 / Mini Pro
 #define SDA_PORT PORTD
@@ -68,6 +73,10 @@
 #define REG_RGB_SWITCH    (0x0A)
 
 #define REG_8540_SW1 (0x00)
+
+#ifdef SCIENTIFIC_ATLANTA
+bool coded1 = false;
+#endif
 
 bool cvbs9321 = false;
 uint8_t input8540 = 0;
@@ -102,7 +111,11 @@ void writeRequest9321(int byteCount) {
         w[currentReg] = Wire.read();
         switch(currentReg) {
           case REG_VIDEO_SWITCH0:
+#ifdef SCIENTIFIC_ATLANTA
+            coded1 = (w[currentReg] == 0x3);
+#else
             cvbs9321 = w[currentReg] & 0x02;
+#endif
           break;
           case REG_RGB_SWITCH:
             w[currentReg] |= RGB_SWITCH_REG_VAL;
@@ -172,7 +185,6 @@ void setup() {
   bool iicinit = i2c_init();
   pinMode(GPIO_BLANKING,OUTPUT);
   digitalWrite(GPIO_BLANKING,LOW);
-
   Wire.begin(TDA9321H_ADDR);
   Wire.onReceive(writeRequest9321);
   Wire.onRequest(readRequest9321);
@@ -186,6 +198,15 @@ bool blanking = false;
 // Constantly read the status regs to be able to serve them back upon request
 void loop() {
   read();
+  #ifdef SCIENTIFIC_ATLANTA
+  if(coded1 && !blanking) {
+    digitalWrite(GPIO_BLANKING,HIGH);
+    blanking = true;
+  } else if(!coded1 && blanking){
+    digitalWrite(GPIO_BLANKING,LOW);
+    blanking = false;
+  }
+  #else
   if(input8540 == 1 && cvbs9321 && !blanking) {
     digitalWrite(GPIO_BLANKING,HIGH);
     blanking = true;
@@ -193,5 +214,6 @@ void loop() {
     digitalWrite(GPIO_BLANKING,LOW);
     blanking = false;
   }
+  #endif
   delay(READ_DELTA_MS);
 }
