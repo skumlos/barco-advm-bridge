@@ -37,7 +37,7 @@
  * Expect your monitor to catch fire!
  */
 
-// Version 1.1
+// Version 1.2
 
 #define I2C_TIMEOUT 500
 #define I2C_PULLUP 0
@@ -51,6 +51,9 @@
 
 // Uncomment this line if you have the late model Scientific Atlanta version without a TDA8540
 //#define SCIENTIFIC_ATLANTA (1)
+
+// Uncomment this line if you have the ADVM10 which has a TDA8540 and two composite inputs.
+//#define ADVM10 (1)
 
 // These work for Nano 3.0 / Mini Pro
 #define SDA_PORT PORTD
@@ -158,15 +161,29 @@ void writeRequest8540(int byteCount) {
         w8540[currentReg8540] = Wire1.read();
         switch(currentReg8540) {
           case REG_8540_SW1:
+#ifdef ADVM10
             // When CVBS input 1 / CODED A is selected,
             // 0x80 (1000 0000b) is written to SW1 register.
             // When CVBS input 2 / CODED B is selected,
             // 0xC0 (1100 0000b) is written to SW1 register.
+
+            if(w8540[currentReg8540] & 0x40) {
+              input8540 = 1;
+            } else {
+              input8540 = 2;
+            }
+#else
+            // When CVBS input 1 / CODED A is selected,
+            // 0x80 (1000 0000b) is written to SW1 register.
+            // When CVBS input 2 / CODED B is selected,
+            // 0xC0 (1100 0000b) is written to SW1 register.
+
             if(w8540[currentReg8540] & 0x40) {
               input8540 = 2;
             } else {
               input8540 = 1;
             }
+#endif
           break;
         }
         ++currentReg8540;
